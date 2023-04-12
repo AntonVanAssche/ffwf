@@ -36,17 +36,18 @@ if __name__ == "__main__":
 
     # Since we are expecting two arguments, we will use the argparse module
     # to parse the command line arguments.
-    # Each argument can contain multiple values, so we will use the nargs
-    # argument to specify that the argument can contain multiple values.
+    # The '--video' may contain multiple values, this is not the case for
+    # the '--name' argument. We expect the fencer name to be a single string surrounded
+    # by quotes, e.g. "Max Heinzer".
     parser = argparse.ArgumentParser(description='FFWF - Find Fencer Within Frame')
     parser.add_argument('--video', nargs='+', help='video file(s)', required=True)
-    parser.add_argument('--name', nargs='+', type=str, help='fencer name', required=True)
+    parser.add_argument('--name', type=str, help='fencer name(s)', required=True)
     parser.add_argument('--verbose', action='store_true', help='debug mode')
 
     args = parser.parse_args()
 
     video_files = args.video
-    fencer_to_detect = args.name
+    fencer_to_detect = args.name.split(' ')
 
     # Convert the fencer name to lowercase, since this is easier to compare
     # with the text extracted from the video frames.
