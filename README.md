@@ -36,7 +36,7 @@ Unfortunately, OCR cannot always get a 100% match when detecting the fencer's na
 These results are produced by the following command (as shown in the preview gif at the top of this README):
 
 ```console
-$ python src/main.py --video ./in/Max\ Heinzer/max-heinzer-video-{4,14}.mp4 --name Max Heinzer
+$ python src/main.py --video ./in/Max\ Heinzer/max-heinzer-video-{4,14}.mp4 --name 'Max Heinzer'
 ```
 
 Note that the `--video` argument is used to specify the video files that we want to process, and the `--name` argument specifies the name of the fencer whose side we want to indicate.
@@ -71,7 +71,7 @@ Underneath you can find the usage information for the script. The `--video` and 
 
 ```console
 $ python main.py --help
-usage: main.py [-h] --video VIDEO [VIDEO ...] --name NAME [NAME ...] [--verbose]
+usage: main.py [-h] --video VIDEO [VIDEO ...] --name NAME [--verbose]
 
 FFWF - Find Fencer Within Frame
 
@@ -79,16 +79,17 @@ options:
   -h, --help            show this help message and exit
   --video VIDEO [VIDEO ...]
                         video file(s)
-  --name NAME [NAME ...]
-                        fencer name
+  --name NAME           fencer name(s)
   --verbose             debug mode
 ```
 
 For example, to add an arrow indicating the side of fencer Gergely Siklosi in multiple video files, such as 'video1.mp4' and 'video2.mp4', you can use the following command:
 
 ```console
-$ python main.py --video video1.mp4 video2.mp4 --name Gergely Siklosi
+$ python main.py --video video1.mp4 video2.mp4 --name 'Gergely Siklosi'
 ```
+
+**Note**: The name must be surrounded by quotes (e.g. 'Gergely Siklosi').
 
 The script will create a new directory called `out` and save the processed videos in it.
 
