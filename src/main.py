@@ -53,14 +53,6 @@ if __name__ == "__main__":
     # with the text extracted from the video frames.
     fencer_to_detect = [name.lower() for name in fencer_to_detect]
 
-    if video_files is None or fencer_to_detect is None:
-        print(f"Error: Missing required arguments.", file=sys.stderr)
-        sys.exit(1)
-
-    if fencer_to_detect is None or len(fencer_to_detect) != 2:
-        print(f"Error: Invalid fencer name '{fencer_to_detect}'.", file=sys.stderr)
-        sys.exit(1)
-
     print(f"Video files: {video_files}")
     print(f"Fencer to detect: {fencer_to_detect}")
 
