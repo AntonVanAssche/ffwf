@@ -3,25 +3,29 @@
 import cv2, pytesseract, ffmpeg, os, sys, argparse, re
 
 def apply_overlay(side, video_file):
-    # To keep the input and output files organized, we will create an 'out'
-    # directory if it does not exist already.
+    # To keep the input and output files organized,
+    # we will create an 'out' directory if it does not exist already.
     if not os.path.exists("out"):
         os.makedirs("out")
 
-    # Our input file is the video file, and our output file will be the same
-    # name as the input file, but with '.out.mp4' appended to the end, and
-    # stored in the 'out' directory. The overlay file is the arrow image
-    # corresponding to the color of the side of the fencer.
     input_file = video_file
 
     # Extract file extension from video file.
     file_extension = os.path.splitext(video_file)[1]
+
+    # Create output file name. We will use the same name as the input file,
+    # but replace the file extension with '.out' + file_extension.
     output_file = os.path.join("out", os.path.basename(video_file).replace(file_extension, ".out" + file_extension))
+
+    # The side of the fencer is determined by the color of the bounding box.
     overlay_file = f"assets/arrows/{side}.png"
 
     input_stream = ffmpeg.input(input_file)
     overlay_stream = ffmpeg.input(overlay_file)
 
+    # We want to overlay the arrow image in the center of the frame, 20 pixels
+    # from the top. To do this, we will use the 'overlay' filter.
+    # The 'x' and 'y' parameters are used to specify the position of the overlay.
     output = ffmpeg.filter([input_stream.video, overlay_stream], 'overlay', x='(W-w)/2', y='20')
 
     ffmpeg.output(output, output_file).overwrite_output().run()
@@ -67,30 +71,35 @@ if __name__ == "__main__":
             print(f"Error: Could not load the video file '{video_file}'.", file=sys.stderr)
             sys.exit(1)
 
-        # Since the name of the fencer is displayed on the left and right sides
-        # (depending on the starting position), we need to crop the left and right
-        # sides of the frame and apply OCR on them
+        # The script assumes that the fencer's name is typically displayed at the bottom of the frame.
+        # Therefore, the bottom area of the frame is set as the default region of interest (ROI).
+        # To further facilitate the detection of the fencer's side, the ROI is divided into two halves,
+        # representing the left (red) and right (green) sides.
+        # The size of the ROI is determined based on the width and height of the frame.
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         bottom_left_x, bottom_left_y, bottom_left_w, bottom_left_h = 0, frame_height - frame_height//4, frame_width//2, frame_height
         bottom_right_x, bottom_right_y, bottom_right_w, bottom_right_h = frame_width//2, frame_height - frame_height//4, frame_width, frame_height
 
-        # Some clips from The Fencing Database (www.fencingdatabase.com/) have
-        # the scoreboard overlay located in the top left corner of the video.
-        # Therefore, we also need to scan this area of the frames.
+        # # For some clips from The Fencing Database (www.fencingdatabase.com/), the
+        # fencer's name is displayed in the top left corner of the video. Therefore,
+        # we also define this area of the frame as our region of interest (ROI). We
+        # will (again) use the frame width and height to determine the size of the ROI.
         top_left_x, top_left_y, top_left_w, top_left_h = 0, 0, frame_width//10, frame_height//4
         top_right_x, top_right_y, top_right_w, top_right_h = frame_width//10, 0, frame_width//10, frame_height//4
 
-        # To make it a bit easier to see the bounding boxes (for ourselves),
-        # we will use different colors for the left and right bounding boxes.
-        # Just like in fencing, the left side is red and the right side is green
+        # We want to make it easier to visualize the bounding boxes on the video frames,
+        # so we will assign different colors to the left and right sides of the fencer.
+        # Consistent with the tradition in fencing, we will use red for the left
+        # and green for the right side of the fencer.
         left_box_color = (0, 0, 255)  # Red
         right_box_color = (0, 255, 0) # Green
 
-        # Later on we want to break the loop if the fencer is detected,
-        # so we can move on to the next video file, if any are left.
-        # We will use this variable to keep track of whether the fencer
-        # has been detected or not.
+        # We want to exit the loop as soon as the fencer is detected, to move
+        # on to the next video file. To do this, we will use a variable to keep
+        # track of whether the fencer has been detected or not. If the variable
+        # remains False after scanning all the frames, it means the fencer was not
+        # found in the video.
         fencer_detected = False
 
         while cap.isOpened():
@@ -98,9 +107,9 @@ if __name__ == "__main__":
             if not ret:
                 break
 
-            # Since we want two bounding boxes, one for the left side and
-            # one for the right side, we need to crop the left and right.
-            # Here we store the bounding boxes in two separate variables,
+            # Since we want four bounding boxes, two for the left side and
+            # two for the right side, we need to crop the left and right.
+            # Here we store the bounding boxes in four separate variables,
             # corresponding to there 'region of interest' (ROI).
             bottom_left_roi = frame[bottom_left_y:bottom_left_y+bottom_left_h, bottom_left_x:bottom_left_x+bottom_left_w]
             bottom_right_roi = frame[bottom_right_y:bottom_right_y+bottom_right_h, bottom_right_x:bottom_right_x+bottom_right_w]
@@ -119,11 +128,11 @@ if __name__ == "__main__":
             top_left_text = pytesseract.image_to_string(top_left_gray)
             top_right_text = pytesseract.image_to_string(top_right_gray)
 
-            # Since OpenCV will not detect the fencer's full name all the time,
-            # we need to check whether the first OR last name is present in the
-            # text. If so, we can assume that the fencer is present in the frame.
-            # Therefore, we will need to split the detected text into words and
-            # check whether the first or last name is present in the text.
+            # Since OpenCV may not detect the fencer's full name in every frame,
+            # we need to check if either the first or last name is present in the
+            # text. If we find either of these names, we can assume that the fencer
+            # is present in the frame. To do this, we will split the detected text
+            # into individual words and check if the first or last name is present.
             bottom_left_text = bottom_left_text.lower().split()
             bottom_right_text = bottom_right_text.lower().split()
             top_left_text = top_left_text.lower().split()
@@ -138,22 +147,18 @@ if __name__ == "__main__":
             # regex to check this.
             if any(re.search(fencer_to_detect[0], word) for word in bottom_left_text) or \
                 any(re.search(fencer_to_detect[1], word) for word in bottom_left_text):
-                # Apply the red arrow overlay to the video file
                 apply_overlay("red", video_file)
                 fencer_detected = True
             if any(re.search(fencer_to_detect[0], word) for word in bottom_right_text) or \
                 any(re.search(fencer_to_detect[1], word) for word in bottom_right_text):
-                # Apply the green arrow overlay to the video file
                 apply_overlay("green", video_file)
                 fencer_detected = True
             if any(re.search(fencer_to_detect[0], word) for word in top_left_text) or \
                 any(re.search(fencer_to_detect[1], word) for word in top_left_text):
-                # Apply the red arrow overlay to the video file
                 apply_overlay("red", video_file)
                 fencer_detected = True
             if any(re.search(fencer_to_detect[0], word) for word in top_right_text) or \
                 any(re.search(fencer_to_detect[1], word) for word in top_right_text):
-                # Apply the green arrow overlay to the video file
                 apply_overlay("green", video_file)
                 fencer_detected = True
 
